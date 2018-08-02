@@ -1,0 +1,6 @@
+知识：学习了LSTM，GRU的基本知识
+          学习了seq2seq中的Attention，beam search， 学习了softmax中的temperature
+代码：在seq2seq with Attention的基础上加入了beam search，对rap数据集进行了预处理
+
+明天计划：在服务器上跑RapGenerator，调参
+	学习github上诗歌生成的案例
