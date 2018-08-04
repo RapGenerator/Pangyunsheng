@@ -60,6 +60,7 @@ def createBatch(samples):
 def getBatches(processed_data, batch_size):
     batches = []
     data_len = len(processed_data)
+
     def genNextSamples():
         for i in range(0, data_len, batch_size):
             yield processed_data[i:min(i + batch_size, data_len)]
@@ -86,7 +87,7 @@ def process_all_data(data):
 
     # 将每一行转换成字符id的list
     processed_data = [[[word_to_id.get(word, word_to_id['<UNK>'])
-                   for word in subline] for subline in line] for line in data]
+                        for word in subline] for subline in line] for line in data]
 
     return processed_data, word_to_id, id_to_word
 
@@ -128,13 +129,3 @@ if __name__ == '__main__':
             print(nexBatch.decoder_targets)
             print(nexBatch.decoder_targets_length)
         temp += 1
-
-
-
-
-
-
-
-
-
-

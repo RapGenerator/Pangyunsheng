@@ -32,7 +32,8 @@ class Seq2SeqModel(object):
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
         self.max_target_sequence_length = tf.reduce_max(self.decoder_targets_length, name='max_target_len')
-        self.mask = tf.sequence_mask(self.decoder_targets_length, self.max_target_sequence_length, dtype=tf.float32, name='masks')
+        self.mask = tf.sequence_mask(self.decoder_targets_length, self.max_target_sequence_length, dtype=tf.float32,
+                                     name='masks')
 
         # embedding矩阵,encoder和decoder共用该词向量矩阵
         self.embedding = tf.get_variable('embedding', [self.vocab_size, self.embedding_size])
@@ -43,16 +44,22 @@ class Seq2SeqModel(object):
         # decoder
         with tf.variable_scope('decoder'):
             # 定义要使用的attention机制。
-            attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(num_units=self.rnn_size, memory=encoder_outputs,
-                                                                      memory_sequence_length=self.encoder_inputs_length)
+            attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(
+                num_units=self.rnn_size, memory=encoder_outputs,
+                memory_sequence_length=self.encoder_inputs_length
+            )
             # 定义decoder阶段要是用的LSTMCell，然后为其封装attention wrapper
             decoder_cell = self.create_rnn_cell()
-            decoder_cell = tf.contrib.seq2seq.AttentionWrapper(cell=decoder_cell, attention_mechanism=attention_mechanism,
-                                                           attention_layer_size=self.rnn_size, name='Attention_Wrapper')
+            decoder_cell = tf.contrib.seq2seq.AttentionWrapper(
+                cell=decoder_cell,
+                attention_mechanism=attention_mechanism,
+                attention_layer_size=self.rnn_size,
+                name='Attention_Wrapper'
+            )
 
             # 定义decoder阶段的初始化状态，直接使用encoder阶段的最后一个隐层状态进行赋值
             decoder_initial_state = decoder_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32).clone(
-                                                                                               cell_state=encoder_state)
+                cell_state=encoder_state)
             output_layer = tf.layers.Dense(self.vocab_size, kernel_initializer=tf.truncated_normal_initializer(
                 mean=0.0, stddev=0.1))
 
@@ -76,28 +83,29 @@ class Seq2SeqModel(object):
                 self.decoder_predict_decode = self.decoder_decode(decoder_cell, decoder_initial_state, output_layer)
 
     def encoder(self):
-        '''
+        """
         创建模型的encoder部分
         :return: encoder_outputs: 用于attention，batch_size*encoder_inputs_length*rnn_size
                  encoder_state: 用于decoder的初始化状态，batch_size*rnn_size
-        '''
+        """
         with tf.variable_scope('encoder'):
             # 创建LSTMCell，两层+dropout
             encoder_cell = self.create_rnn_cell()
             # encoder_inputs的词向量
             encoder_inputs_embedded = tf.nn.embedding_lookup(self.embedding, self.encoder_inputs)
             # 使用dynamic_rnn构建LSTM模型，将输入编码成隐层向量。
-            encoder_outputs, encoder_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs_embedded, sequence_length=
-                                                               self.encoder_inputs_length, dtype=tf.float32)
+            encoder_outputs, encoder_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs_embedded,
+                                                               sequence_length=self.encoder_inputs_length,
+                                                               dtype=tf.float32)
             return encoder_outputs, encoder_state
 
     def decoder_train(self, decoder_cell, decoder_initial_state, output_layer):
-        '''
+        """
         创建train的decoder部分
         :param encoder_outputs: encoder的输出
         :param encoder_state: encoder的state
         :return: decoder_logits_train: decoder的predict
-        '''
+        """
         # 定义decoder阶段的输入，其实就是在decoder的target开始处添加一个<go>,并删除结尾处的<end>,并进行embedding。
         # decoder_inputs_embedded的shape为[batch_size, decoder_targets_length, embedding_size]
         ending = tf.strided_slice(self.decoder_targets, [0, 0], [self.batch_size, -1], [1, 1])
@@ -129,24 +137,26 @@ class Seq2SeqModel(object):
         decoding_helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding=self.embedding, start_tokens=start_tokens,
                                                                    end_token=end_token)
         inference_decoder = tf.contrib.seq2seq.BasicDecoder(cell=decoder_cell, helper=decoding_helper,
-                                                            initial_state=decoder_initial_state, output_layer=output_layer)
+                                                            initial_state=decoder_initial_state,
+                                                            output_layer=output_layer)
         decoder_outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder=inference_decoder, maximum_iterations=8)
         decoder_predict_decode = tf.expand_dims(decoder_outputs.sample_id, -1)
 
         return decoder_predict_decode
 
     def create_rnn_cell(self):
-        '''
+        """
         创建标准的RNN Cell，相当于一个时刻的Cell
         :return: cell: 一个Deep RNN Cell
-        '''
+        """
+
         def single_rnn_cell():
             # 创建单个cell，这里需要注意的是一定要使用一个single_rnn_cell的函数，不然直接把cell放在MultiRNNCell
             # 的列表中最终模型会发生错误
             single_cell = tf.contrib.rnn.LSTMCell(self.rnn_size)
             # dropout
-            basiccell = tf.contrib.rnn.DropoutWrapper(single_cell, output_keep_prob=self.keep_prob)
-            return basiccell
+            basic_cell = tf.contrib.rnn.DropoutWrapper(single_cell, output_keep_prob=self.keep_prob)
+            return basic_cell
 
         # 列表中每个元素都是调用single_rnn_cell函数
         cell = tf.contrib.rnn.MultiRNNCell([single_rnn_cell() for _ in range(self.num_layers)])
@@ -179,6 +189,3 @@ class Seq2SeqModel(object):
                      self.batch_size: len(batch.encoder_inputs)}
         predict = sess.run([self.decoder_predict_decode], feed_dict=feed_dict)
         return predict
-
-
-

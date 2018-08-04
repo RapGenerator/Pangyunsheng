@@ -59,7 +59,8 @@ class Seq2SeqModel(object):
                 # 如果使用beam_search，则需要将encoder的输出进行tile_batch，其实就是复制beam_size份。
                 print("use beamsearch decoding..")
                 encoder_outputs = tile_batch(encoder_outputs, multiplier=self.beam_size)
-                encoder_state = nest.map_structure(lambda s: tf.contrib.seq2seq.tile_batch(s, self.beam_size), encoder_state)
+                encoder_state = nest.map_structure(lambda s: tf.contrib.seq2seq.tile_batch(s, self.beam_size),
+                                                   encoder_state)
                 encoder_inputs_length = tile_batch(encoder_inputs_length, multiplier=self.beam_size)
 
             # 定义要使用的attention机制。
@@ -80,12 +81,13 @@ class Seq2SeqModel(object):
                                                             dtype=tf.float32).clone(cell_state=encoder_state)
 
             output_layer = tf.layers.Dense(self.vocab_size, kernel_initializer=tf.truncated_normal_initializer(
-                                                            mean=0.0,
-                                                            stddev=0.1))
+                mean=0.0,
+                stddev=0.1))
 
             if self.mode == 'train':
                 self.decoder_outputs = self.decoder_train(decoder_cell, decoder_initial_state, output_layer)
                 # loss
+                # sequence_loss: Weighted cross-entropy loss for a sequence of logits
                 self.loss = sequence_loss(logits=self.decoder_outputs, targets=self.decoder_targets, weights=self.mask)
 
                 # summary
@@ -111,18 +113,20 @@ class Seq2SeqModel(object):
             encoder_cell = self.create_rnn_cell()
             encoder_inputs_embedded = tf.nn.embedding_lookup(self.embedding, self.encoder_inputs)
             encoder_outputs, encoder_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs_embedded, sequence_length=
-                                                               self.encoder_inputs_length, dtype=tf.float32)
+            self.encoder_inputs_length, dtype=tf.float32)
             return encoder_outputs, encoder_state
 
     def decoder_train(self, decoder_cell, decoder_initial_state, output_layer):
-        '''
+        """
         创建train的decoder部分
         :param encoder_outputs: encoder的输出
         :param encoder_state: encoder的state
         :return: decoder_logits_train: decoder的predict
-        '''
+        """
         ending = tf.strided_slice(self.decoder_targets, [0, 0], [self.batch_size, -1], [1, 1])
+        # Concat a column of <GO> at the beginning of each sentence in the batch
         decoder_input = tf.concat([tf.fill([self.batch_size, 1], self.word_to_idx['<GO>']), ending], 1)
+        # decoder_inputs_embedded.shape = (batch_size, decoder_target_length, embedding_size)
         decoder_inputs_embedded = tf.nn.embedding_lookup(self.embedding, decoder_input)
 
         training_helper = TrainingHelper(inputs=decoder_inputs_embedded,
@@ -132,9 +136,15 @@ class Seq2SeqModel(object):
                                         helper=training_helper,
                                         initial_state=decoder_initial_state,
                                         output_layer=output_layer)
+        # impute_finished = True means at each time step, e.g. time step = t,
+        # if a sentence in the batch has already finished decoding,
+        # then its state will be copied (state[t] = state[t - 1],
+        # and its output will be zeroed (output[t] = [0, 0, ..., 0])
+        # type(decoder_outputs) = BasicDecoderOutput
         decoder_outputs, _, _ = dynamic_decode(decoder=training_decoder,
                                                impute_finished=True,
                                                maximum_iterations=self.max_target_sequence_length)
+        # rnn_output: Alias for field number 0
         decoder_logits_train = tf.identity(decoder_outputs.rnn_output)
         return decoder_logits_train
 
@@ -171,10 +181,12 @@ class Seq2SeqModel(object):
         创建标准的RNN Cell，相当于一个时刻的Cell
         :return: cell: 一个Deep RNN Cell
         '''
+
         def single_rnn_cell():
             single_cell = GRUCell(self.rnn_size) if self.cell_type == 'GRU' else LSTMCell(self.rnn_size)
             basiccell = DropoutWrapper(single_cell, output_keep_prob=self.keep_prob)
             return basiccell
+
         cell = MultiRNNCell([single_rnn_cell() for _ in range(self.num_layers)])
         return cell
 
@@ -205,6 +217,3 @@ class Seq2SeqModel(object):
                      self.batch_size: len(batch.encoder_inputs)}
         predict = sess.run([self.decoder_predict_decode], feed_dict=feed_dict)
         return predict
-
-
-

@@ -2,22 +2,27 @@
 #  _*_ coding:utf-8 _*_
 
 import tensorflow as tf
-from RapGenerator.data_helpers import *
-from RapGenerator.model import Seq2SeqModel
+from data_helpers import *
+from model import Seq2SeqModel
+from HyperParameter import HyperParameter
 import math
+import sys
 
 if __name__ == '__main__':
 
     # 超参数
-    rnn_size = 1024
-    num_layers = 2
-    embedding_size = 1024
-    batch_size = 128
-    learning_rate = 0.0001
-    epochs = 5000
-    sources_txt = 'data/sources.txt'
-    targets_txt = 'data/targets.txt'
-    model_dir = 'model/'
+    hp = HyperParameter()
+    rnn_size = hp.rnn_size
+    num_layers = hp.num_layers
+    embedding_size = hp.embedding_size
+    batch_size = hp.batch_size
+    learning_rate = hp.learning_rate
+    epochs = hp.epochs
+    steps_per_checkpoint = hp.steps_per_checkpoint
+    sources_txt = hp.sources_txt
+    targets_txt = hp.targets_txt
+    model_dir = hp.model_dir
+    print_loss_steps = hp.print_loss_steps
 
     # 得到分词后的sources和targets
     sources = load_and_cut_data(sources_txt)
@@ -26,16 +31,27 @@ if __name__ == '__main__':
     # 根据sources和targets创建词典，并映射
     sources_data, targets_data, word_to_id, _ = create_dic_and_map(sources, targets)
 
-    with tf.Session() as sess:
-        model = Seq2SeqModel(rnn_size, num_layers, embedding_size, learning_rate, word_to_id, mode='train',
-                             use_attention=True, beam_search=False, beam_size=5, cell_type='LSTM', max_gradient_norm=5.0)
-        sess.run(tf.global_variables_initializer())
+    # Build model
+    # Note that beam_search should be False while training!!!
+    model = Seq2SeqModel(rnn_size, num_layers, embedding_size, learning_rate, word_to_id, mode='train',
+                         use_attention=True, beam_search=False, beam_size=3, cell_type='LSTM',
+                         max_gradient_norm=5.0)
 
+    # Train
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
         for e in range(epochs):
             print("----- Epoch {}/{} -----".format(e + 1, epochs))
             batches = getBatches(sources_data, targets_data, batch_size)
+            steps = 0
             for nextBatch in batches:
                 loss, summary = model.train(sess, nextBatch)
                 perplexity = math.exp(float(loss)) if loss < 300 else float('inf')
-                print("----- Loss %.2f -- Perplexity %.2f" % (loss, perplexity))
+                steps = steps + 1
+                if steps % print_loss_steps == 0:
+                    print("----- Loss %.2f -- Perplexity %.2f" % (loss, perplexity))
+                else:
+                    sys.stdout.write('.')
+                    sys.stdout.flush()
+            print()
             model.saver.save(sess, model_dir + 'seq2seq.ckpt')

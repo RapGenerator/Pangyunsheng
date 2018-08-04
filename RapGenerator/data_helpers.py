@@ -15,11 +15,11 @@ class Batch:
 
 
 def load_and_cut_data(filepath):
-    '''
+    """
     加载数据并分词
     :param filepath: 路径
     :return: data: 分词后的数据
-    '''
+    """
     with open(filepath, 'r', encoding='UTF-8') as f:
         data = []
         lines = f.readlines()
@@ -31,7 +31,7 @@ def load_and_cut_data(filepath):
 
 
 def create_dic_and_map(sources, targets):
-    '''
+    """
     得到输入和输出的字符映射表
     :param sources:
            targets:
@@ -39,7 +39,7 @@ def create_dic_and_map(sources, targets):
              targets_data:
              word_to_id: 字典，数字到数字的转换
              id_to_word: 字典，数字到汉字的转换
-    '''
+    """
     special_words = ['<PAD>', '<UNK>', '<GO>', '<EOS>']
 
     # 得到每次词语的使用频率
@@ -49,10 +49,11 @@ def create_dic_and_map(sources, targets):
             word_dic[character] = word_dic.get(character, 0) + 1
 
     # 去掉使用频率为1的词
-    word_dic_new = []
-    for key, value in word_dic.items():
-        if value > 1:
-            word_dic_new.append(key)
+    word_dic_new = [k for k, v in word_dic.items() if v > 1]
+    # word_dic_new = []
+    # for key, value in word_dic.items():
+    #     if value > 1:
+    #         word_dic_new.append(key)
 
     # 将字典中的汉字/英文单词映射为数字
     id_to_word = {idx: word for idx, word in enumerate(special_words + word_dic_new)}
@@ -68,6 +69,7 @@ def create_dic_and_map(sources, targets):
 def createBatch(sources, targets):
     batch = Batch()
     batch.encoder_inputs_length = [len(source) for source in sources]
+    # len(target) + 1 because of one <EOS>
     batch.decoder_targets_length = [len(target) + 1 for target in targets]
 
     max_source_length = max(batch.encoder_inputs_length)
@@ -81,7 +83,7 @@ def createBatch(sources, targets):
 
     for target in targets:
         # 将target进行PAD，并添加EOS符号
-        pad = [padToken] * (max_target_length - len(target) - 1)
+        pad = [padToken] * (max_target_length - (len(target) + 1))
         eos = [eosToken] * 1
         batch.decoder_targets.append(target + eos + pad)
 
@@ -89,11 +91,10 @@ def createBatch(sources, targets):
 
 
 def getBatches(sources_data, targets_data, batch_size):
-
     data_len = len(sources_data)
 
     def genNextSamples():
-        for i in range(0, len(sources_data), batch_size):
+        for i in range(0, data_len, batch_size):
             yield sources_data[i:min(i + batch_size, data_len)], targets_data[i:min(i + batch_size, data_len)]
 
     batches = []
@@ -105,12 +106,12 @@ def getBatches(sources_data, targets_data, batch_size):
 
 
 def sentence2enco(sentence, word2id):
-    '''
-    测试的时候将用户输入的句子转化为可以直接feed进模型的数据，现将句子转化成id，然后调用createBatch处理
+    """
+    测试的时候将用户输入的句子转化为可以直接feed进模型的数据，先将句子转化成id，然后调用createBatch处理
     :param sentence: 用户输入的句子
     :param word2id: 单词与id之间的对应关系字典
     :return: 处理之后的数据，可直接feed进模型进行预测
-    '''
+    """
     if sentence == '':
         return None
     # 分词
@@ -150,13 +151,3 @@ if __name__ == '__main__':
             print(nexBatch.decoder_targets)
             print(nexBatch.decoder_targets_length)
         temp += 1
-
-
-
-
-
-
-
-
-
-

@@ -3,8 +3,8 @@
 
 import tensorflow as tf
 import numpy as np
-from Seq2Seq.data_helpers import *
-from Seq2Seq.model import Seq2SeqModel
+from data_helpers import *
+from model import Seq2SeqModel
 import sys
 
 

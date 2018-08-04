@@ -2,8 +2,8 @@
 #  _*_ coding:utf-8 _*_
 
 import tensorflow as tf
-from Seq2Seq.data_helpers import *
-from Seq2Seq.model import Seq2SeqModel
+from data_helpers import *
+from model import Seq2SeqModel
 import math
 
 if __name__ == '__main__':
