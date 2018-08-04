@@ -19,9 +19,11 @@ def predict_ids_to_seq(predict_ids, id2word, beam_size):
     """
     for single_predict in predict_ids:
         for i in range(beam_size):
+            print("Beam search result {}：".format(i + 1))
             predict_list = np.ndarray.tolist(single_predict[:, :, i])
             predict_seq = [id2word[idx] for idx in predict_list[0]]
             print(" ".join(predict_seq))
+            print()
 
 
 if __name__ == '__main__':
@@ -38,6 +40,7 @@ if __name__ == '__main__':
     sources_txt = hp.sources_txt
     targets_txt = hp.targets_txt
     model_dir = hp.model_dir
+    beam_size = hp.beam_size
 
     # 得到分词后的sources和targets
     sources = load_and_cut_data(sources_txt)
@@ -48,7 +51,7 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         model = Seq2SeqModel(rnn_size, num_layers, embedding_size, learning_rate, word_to_id, mode='decode',
-                             use_attention=True, beam_search=True, beam_size=5, cell_type='LSTM', max_gradient_norm=5.0)
+                             use_attention=True, beam_search=True, beam_size=beam_size, cell_type='LSTM', max_gradient_norm=5.0)
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
             print('Reloading model parameters..')
@@ -62,7 +65,7 @@ if __name__ == '__main__':
         while sentence:
             batch = sentence2enco(sentence, word_to_id)
             predicted_ids = model.infer(sess, batch)
-            predict_ids_to_seq(predicted_ids, id_to_word, 5)
+            predict_ids_to_seq(predicted_ids, id_to_word, beam_size)
             print("> ", "")
             sys.stdout.flush()
             sentence = sys.stdin.readline()

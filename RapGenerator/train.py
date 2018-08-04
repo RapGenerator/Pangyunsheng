@@ -23,6 +23,7 @@ if __name__ == '__main__':
     targets_txt = hp.targets_txt
     model_dir = hp.model_dir
     print_loss_steps = hp.print_loss_steps
+    beam_size = hp.beam_size
 
     # 得到分词后的sources和targets
     sources = load_and_cut_data(sources_txt)
@@ -34,11 +35,19 @@ if __name__ == '__main__':
     # Build model
     # Note that beam_search should be False while training!!!
     model = Seq2SeqModel(rnn_size, num_layers, embedding_size, learning_rate, word_to_id, mode='train',
-                         use_attention=True, beam_search=False, beam_size=3, cell_type='LSTM',
+                         use_attention=True, beam_search=False, beam_size=beam_size, cell_type='LSTM',
                          max_gradient_norm=5.0)
 
     # Train
     with tf.Session() as sess:
+        # Trying to restore model
+        ckpt = tf.train.get_checkpoint_state(model_dir)
+        if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
+            print('Reloading model parameters...')
+            model.saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            print('No checkpoint found, training from scratch...')
+
         sess.run(tf.global_variables_initializer())
         for e in range(epochs):
             print("----- Epoch {}/{} -----".format(e + 1, epochs))

@@ -67,13 +67,13 @@ class Seq2SeqModel(object):
             attention_mechanism = BahdanauAttention(num_units=self.rnn_size,
                                                     memory=encoder_outputs,
                                                     memory_sequence_length=encoder_inputs_length)
-            # 定义decoder阶段要是用的RNNCell，然后为其封装attention wrapper
+            # 定义decoder阶段要用的RNNCell，然后为其封装attention wrapper
             decoder_cell = self.create_rnn_cell()
             decoder_cell = AttentionWrapper(cell=decoder_cell,
                                             attention_mechanism=attention_mechanism,
                                             attention_layer_size=self.rnn_size,
                                             name='Attention_Wrapper')
-            # 如果使用beam_seach则batch_size = self.batch_size * self.beam_size
+            # 如果使用beam_search则batch_size = self.batch_size * self.beam_size
             batch_size = self.batch_size if not self.beam_search else self.batch_size * self.beam_size
 
             # 定义decoder阶段的初始化状态，直接使用encoder阶段的最后一个隐层状态进行赋值
