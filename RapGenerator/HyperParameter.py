@@ -13,7 +13,7 @@ class HyperParameter(object):
         self.num_layers = 2
         self.embedding_size = 256
         self.batch_size = 32
-        self.learning_rate = 0.005
+        self.learning_rate = 0.001
         self.epochs = 2000
         self.teacher_forcing = False
         self.teacher_forcing_probability = 0.5
@@ -28,5 +28,5 @@ class HyperParameter(object):
         self.max_to_keep = 3
 
         # Other
-        self.print_loss_steps = 100
+        self.print_loss_steps = 10
         self.beam_size = 3

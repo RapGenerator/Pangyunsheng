@@ -52,6 +52,7 @@ if __name__ == '__main__':
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
             print('Reloading model parameters...')
+            model.saver.recover_last_checkpoints(ckpt.all_model_checkpoint_paths)
             model.saver.restore(sess, ckpt.model_checkpoint_path)
         else:
             print('No checkpoint found, training from scratch...')
