@@ -54,7 +54,7 @@ class Seq2SeqModel(object):
         self.encoder_inputs_length = tf.placeholder(tf.int32, [None], name='encoder_inputs_length')
         self.decoder_targets = tf.placeholder(tf.int32, [None, None], name='decoder_targets')
         self.decoder_targets_length = tf.placeholder(tf.int32, [None], name='decoder_targets_length')
-        self.batch_size = tf.placeholder(tf.int32, [], name='batch_size')
+        self.batch_size = tf.placeholder(tf.int32, name='batch_size')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
         self.max_target_sequence_length = tf.reduce_max(self.decoder_targets_length, name='max_target_len')
@@ -228,8 +228,8 @@ class Seq2SeqModel(object):
         '''
         def single_rnn_cell():
             single_cell = GRUCell(self.rnn_size) if self.cell_type == 'GRU' else LSTMCell(self.rnn_size)
-            basiccell = DropoutWrapper(single_cell, output_keep_prob=self.keep_prob)
-            return basiccell
+            basic_cell = DropoutWrapper(single_cell, output_keep_prob=self.keep_prob)
+            return basic_cell
         cell = MultiRNNCell([single_rnn_cell() for _ in range(self.num_layers)])
         return cell
 
