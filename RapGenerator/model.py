@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.python.util import nest
 from tensorflow.contrib.seq2seq import BahdanauAttention, AttentionWrapper
 from tensorflow.contrib.seq2seq import sequence_loss
-from tensorflow.contrib.seq2seq import TrainingHelper, GreedyEmbeddingHelper
+from tensorflow.contrib.seq2seq import TrainingHelper, ScheduledEmbeddingTrainingHelper, GreedyEmbeddingHelper
 from tensorflow.contrib.seq2seq import BasicDecoder, dynamic_decode
 from tensorflow.contrib.seq2seq import BeamSearchDecoder
 from tensorflow.contrib.seq2seq import tile_batch
@@ -15,7 +15,8 @@ from tensorflow.contrib.rnn import LSTMCell, GRUCell
 
 class Seq2SeqModel(object):
     def __init__(self, rnn_size, num_layers, embedding_size, learning_rate, word_to_idx, mode, use_attention,
-                 beam_search, beam_size, cell_type='LSTM', max_gradient_norm=5.0):
+                 beam_search, beam_size, teacher_forcing=False, teacher_forcing_probability=0.5,
+                 cell_type='LSTM', max_gradient_norm=5.0):
         self.learing_rate = learning_rate
         self.embedding_size = embedding_size
         self.rnn_size = rnn_size
@@ -28,6 +29,8 @@ class Seq2SeqModel(object):
         self.beam_size = beam_size
         self.cell_type = cell_type
         self.max_gradient_norm = max_gradient_norm
+        self.teacher_forcing = teacher_forcing
+        self.teacher_forcing_probability = teacher_forcing_probability
 
         # placeholder
         self.encoder_inputs = tf.placeholder(tf.int32, [None, None], name='encoder_inputs')
@@ -129,9 +132,18 @@ class Seq2SeqModel(object):
         # decoder_inputs_embedded.shape = (batch_size, decoder_target_length, embedding_size)
         decoder_inputs_embedded = tf.nn.embedding_lookup(self.embedding, decoder_input)
 
-        training_helper = TrainingHelper(inputs=decoder_inputs_embedded,
-                                         sequence_length=self.decoder_targets_length,
-                                         time_major=False, name='training_helper')
+        if self.teacher_forcing:
+            training_helper = ScheduledEmbeddingTrainingHelper(
+                inputs=decoder_inputs_embedded,
+                sequence_length=self.decoder_targets_length,
+                embedding=self.embedding,
+                sampling_probability=self.teacher_forcing_probability,
+                time_major=False, name='teacher_forcing_training_helper'
+            )
+        else:
+            training_helper = TrainingHelper(inputs=decoder_inputs_embedded,
+                                             sequence_length=self.decoder_targets_length,
+                                             time_major=False, name='training_helper')
         training_decoder = BasicDecoder(cell=decoder_cell,
                                         helper=training_helper,
                                         initial_state=decoder_initial_state,

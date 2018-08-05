@@ -66,6 +66,5 @@ if __name__ == '__main__':
             batch = sentence2enco(sentence, word_to_id)
             predicted_ids = model.infer(sess, batch)
             predict_ids_to_seq(predicted_ids, id_to_word, beam_size)
-            print("> ", "")
             sys.stdout.flush()
-            sentence = sys.stdin.readline()
+            sentence = input("> ")

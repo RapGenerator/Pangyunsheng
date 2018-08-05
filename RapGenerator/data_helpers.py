@@ -49,11 +49,14 @@ def create_dic_and_map(sources, targets):
             word_dic[character] = word_dic.get(character, 0) + 1
 
     # 去掉使用频率为1的词
-    word_dic_new = [k for k, v in word_dic.items() if v > 1]
+    # word_dic_new = [k for k, v in word_dic.items() if v > 1]
     # word_dic_new = []
     # for key, value in word_dic.items():
     #     if value > 1:
     #         word_dic_new.append(key)
+
+    # 不去掉频率为1的词
+    word_dic_new = [k for k, _ in word_dic.items()]
 
     # 将字典中的汉字/英文单词映射为数字
     id_to_word = {idx: word for idx, word in enumerate(special_words + word_dic_new)}
