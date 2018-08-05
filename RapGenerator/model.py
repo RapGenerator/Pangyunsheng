@@ -16,7 +16,7 @@ from tensorflow.contrib.rnn import LSTMCell, GRUCell
 class Seq2SeqModel(object):
     def __init__(self, rnn_size, num_layers, embedding_size, learning_rate, word_to_idx, mode, use_attention,
                  beam_search, beam_size, teacher_forcing=False, teacher_forcing_probability=0.5,
-                 cell_type='LSTM', max_gradient_norm=5.0):
+                 cell_type='LSTM', max_gradient_norm=5.0, max_to_keep=5):
         self.learing_rate = learning_rate
         self.embedding_size = embedding_size
         self.rnn_size = rnn_size
@@ -48,7 +48,7 @@ class Seq2SeqModel(object):
         self.embedding = tf.get_variable('embedding', [self.vocab_size, self.embedding_size])
 
         self.__graph__()
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(max_to_keep=max_to_keep)
 
     def __graph__(self):
 
@@ -133,14 +133,17 @@ class Seq2SeqModel(object):
         decoder_inputs_embedded = tf.nn.embedding_lookup(self.embedding, decoder_input)
 
         if self.teacher_forcing:
+            print('Use teacher forcing with probability of {} to train decoder'.format(
+                self.teacher_forcing_probability))
             training_helper = ScheduledEmbeddingTrainingHelper(
                 inputs=decoder_inputs_embedded,
                 sequence_length=self.decoder_targets_length,
                 embedding=self.embedding,
                 sampling_probability=self.teacher_forcing_probability,
-                time_major=False, name='teacher_forcing_training_helper'
+                time_major=False, name='training_helper'
             )
         else:
+            print('Use normal method to train decoder')
             training_helper = TrainingHelper(inputs=decoder_inputs_embedded,
                                              sequence_length=self.decoder_targets_length,
                                              time_major=False, name='training_helper')

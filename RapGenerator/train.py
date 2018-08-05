@@ -26,6 +26,7 @@ if __name__ == '__main__':
     beam_size = hp.beam_size
     teacher_forcing = hp.teacher_forcing
     teacher_forcing_probability = hp.teacher_forcing_probability
+    max_to_keep = hp.max_to_keep
 
     # 得到分词后的sources和targets
     sources = load_and_cut_data(sources_txt)
@@ -33,7 +34,7 @@ if __name__ == '__main__':
 
     # 根据sources和targets创建词典，并映射
     sources_data, targets_data, word_to_id, _ = create_dic_and_map(sources, targets)
-    
+
     # Train
     with tf.Session() as sess:
         # Build model
@@ -43,7 +44,8 @@ if __name__ == '__main__':
             use_attention=True, beam_search=False, beam_size=beam_size,
             teacher_forcing=teacher_forcing,
             teacher_forcing_probability=teacher_forcing_probability,
-            cell_type='LSTM', max_gradient_norm=5.0
+            cell_type='LSTM', max_gradient_norm=5.0,
+            max_to_keep=max_to_keep
         )
 
         # Trying to restore model
@@ -59,6 +61,8 @@ if __name__ == '__main__':
             print("----- Epoch {}/{} -----".format(e + 1, epochs))
             batches = getBatches(sources_data, targets_data, batch_size)
             steps = 0
+            # Keep track of the minimum loss to save best model
+            best_loss = 100000.0
             for nextBatch in batches:
                 loss, summary = model.train(sess, nextBatch)
                 perplexity = math.exp(float(loss)) if loss < 300 else float('inf')
@@ -68,5 +72,11 @@ if __name__ == '__main__':
                 else:
                     sys.stdout.write('.')
                     sys.stdout.flush()
+                # Only save the best model
+                if loss < best_loss and steps % steps_per_checkpoint == 0:
+                    best_loss = loss
+                    model.saver.save(
+                        sess, model_dir + 'seq2seq_epoch{}_step{}_loss{:.2f}.ckpt'.format(e, steps, loss)
+                    )
             print()
-            model.saver.save(sess, model_dir + 'seq2seq.ckpt')
+            # model.saver.save(sess, model_dir + 'seq2seq.ckpt')

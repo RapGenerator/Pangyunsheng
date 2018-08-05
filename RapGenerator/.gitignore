@@ -2,4 +2,4 @@
 __pycache__/
 model/*.ckpt.*
 model/checkpoint
-model_bak/
+model_bak*/

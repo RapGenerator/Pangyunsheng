@@ -15,11 +15,18 @@ class HyperParameter(object):
         self.batch_size = 32
         self.learning_rate = 0.005
         self.epochs = 2000
-        self.steps_per_checkpoint = 5
+        self.teacher_forcing = False
+        self.teacher_forcing_probability = 0.5
+
+        # Data filepath
         self.sources_txt = 'data/sources.txt'
         self.targets_txt = 'data/targets.txt'
+
+        # Saver config
         self.model_dir = 'model/'
+        self.steps_per_checkpoint = 20
+        self.max_to_keep = 3
+
+        # Other
         self.print_loss_steps = 100
         self.beam_size = 3
-        self.teacher_forcing = True
-        self.teacher_forcing_probability = 0.5
