@@ -13,7 +13,7 @@ class HyperParameter(object):
         self.num_layers = 2
         self.embedding_size = 256
         self.batch_size = 32
-        self.learning_rate = 0.01
+        self.learning_rate = 0.005
         self.epochs = 2000
         self.steps_per_checkpoint = 5
         self.sources_txt = 'data/sources.txt'
