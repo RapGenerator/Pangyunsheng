@@ -1,6 +1,7 @@
 # ！/usr/bin/env python
 #  _*_ coding:utf-8 _*_
-import nltk
+
+import jieba
 
 padToken, unknownToken, goToken, eosToken = 0, 1, 2, 3
 
@@ -13,82 +14,96 @@ class Batch:
         self.decoder_targets_length = []
 
 
-def load_data(filepath):
+def load_and_cut_data(filepath):
     '''
-    加载数据
-    :param filepath: 数据路径
-    :return: data
+    加载数据并分词
+    :param filepath: 路径
+    :return: data: 分词后的数据
     '''
     with open(filepath, 'r', encoding='UTF-8') as f:
         data = []
         lines = f.readlines()
         for line in lines:
-            line = line.strip().split(' ')
-            data.append(line)
+            seg_list = jieba.cut(line.strip(), cut_all=False)
+            cutted_line = [e for e in seg_list]
+            data.append(cutted_line)
     return data
 
 
-def pad_sentence_batch(sentence_batch, pad_int):
-    max_sentence = max([len(sentence) for sentence in sentence_batch])
-    return [sentence + [pad_int] * (max_sentence - len(sentence)) for sentence in sentence_batch]
-
-
-def createBatch(samples):
-    batch = Batch()
-    batch.encoder_inputs_length = [len(sample[0]) for sample in samples]
-    batch.decoder_targets_length = [len(sample[1]) + 1 for sample in samples]
-
-    max_source_length = max(batch.encoder_inputs_length)
-    max_target_length = max(batch.decoder_targets_length)
-
-    for sample in samples:
-        # 将source进行反序并PAD值本batch的最大长度
-        source = list(reversed(sample[0]))
-        pad = [padToken] * (max_source_length - len(source))
-        batch.encoder_inputs.append(pad + source)
-
-        # 将target进行PAD，并添加END符号
-        target = sample[1]
-        pad = [padToken] * (max_target_length - len(target) - 1)
-        eos = [eosToken] * 1
-        batch.decoder_targets.append(target + eos + pad)
-        # batch.decoder_targets.append(target + pad)
-
-    return batch
-
-
-def getBatches(processed_data, batch_size):
-    batches = []
-    data_len = len(processed_data)
-    def genNextSamples():
-        for i in range(0, data_len, batch_size):
-            yield processed_data[i:min(i + batch_size, data_len)]
-
-    for samples in genNextSamples():
-        # samples有batchs_size行，每行是一个QA
-        batch = createBatch(samples)
-        batches.append(batch)
-    return batches
-
-
-def process_all_data(data):
+def create_dic_and_map(sources, targets):
     '''
     得到输入和输出的字符映射表
-    :param data: 原始数据，内容为汉字
-    :return: processed_data: 映射后的数据，内容为数字
+    :param sources:
+           targets:
+    :return: sources_data:
+             targets_data:
              word_to_id: 字典，数字到数字的转换
              id_to_word: 字典，数字到汉字的转换
     '''
     special_words = ['<PAD>', '<UNK>', '<GO>', '<EOS>']
-    set_words = list(set([character for line in data for subline in line for character in subline]))
-    id_to_word = {idx: word for idx, word in enumerate(special_words + set_words)}
+
+    # 得到每次词语的使用频率
+    # word_dic = {}
+    # for line in (sources + targets):
+    #     for character in line:
+    #         word_dic[character] = word_dic.get(character, 0) + 1
+
+    # 去掉使用频率为1的词
+    # word_dic_new = []
+    # for key, value in word_dic.items():
+    #     if value > 1:
+    #         word_dic_new.append(key)
+
+    word_dic_new = list(set([character for line in (sources + targets) for character in line]))
+
+    # 将字典中的汉字/英文单词映射为数字
+    id_to_word = {idx: word for idx, word in enumerate(special_words + word_dic_new)}
     word_to_id = {word: idx for idx, word in id_to_word.items()}
 
-    # 将每一行转换成字符id的list
-    processed_data = [[[word_to_id.get(word, word_to_id['<UNK>'])
-                   for word in subline] for subline in line] for line in data]
+    # 将sources和targets中的汉字/英文单词映射为数字
+    sources_data = [[word_to_id.get(character, word_to_id['<UNK>']) for character in line] for line in sources]
+    targets_data = [[word_to_id.get(character, word_to_id['<UNK>']) for character in line] for line in targets]
 
-    return processed_data, word_to_id, id_to_word
+    return sources_data, targets_data, word_to_id, id_to_word
+
+
+def createBatch(sources, targets):
+    batch = Batch()
+    batch.encoder_inputs_length = [len(source) for source in sources]
+    batch.decoder_targets_length = [len(target) + 1 for target in targets]
+
+    max_source_length = max(batch.encoder_inputs_length)
+    max_target_length = max(batch.decoder_targets_length)
+
+    for source in sources:
+        # 将source进行反序并PAD
+        source = list(reversed(source))
+        pad = [padToken] * (max_source_length - len(source))
+        batch.encoder_inputs.append(pad + source)
+
+    for target in targets:
+        # 将target进行PAD，并添加EOS符号
+        pad = [padToken] * (max_target_length - len(target) - 1)
+        eos = [eosToken] * 1
+        batch.decoder_targets.append(target + eos + pad)
+
+    return batch
+
+
+def getBatches(sources_data, targets_data, batch_size):
+
+    data_len = len(sources_data)
+
+    def genNextSamples():
+        for i in range(0, len(sources_data), batch_size):
+            yield sources_data[i:min(i + batch_size, data_len)], targets_data[i:min(i + batch_size, data_len)]
+
+    batches = []
+    for sources, targets in genNextSamples():
+        batch = createBatch(sources, targets)
+        batches.append(batch)
+
+    return batches
 
 
 def sentence2enco(sentence, word2id):
@@ -101,24 +116,33 @@ def sentence2enco(sentence, word2id):
     if sentence == '':
         return None
     # 分词
-    # tokens = nltk.word_tokenize(sentence)
-    tokens = ''.join(sentence.split())
+    seg_list = jieba.cut(sentence.strip(), cut_all=False)
+    cutted_line = [e for e in seg_list]
 
     # 将每个单词转化为id
     wordIds = []
-    for token in tokens:
-        wordIds.append(word2id.get(token, unknownToken))
+    for word in cutted_line:
+        wordIds.append(word2id.get(word, unknownToken))
+    print(wordIds)
     # 调用createBatch构造batch
-    batch = createBatch([[wordIds, []]])
+    batch = createBatch([wordIds], [[]])
     return batch
 
 
 if __name__ == '__main__':
-    filepath = 'data/data.txt'
-    batch_size = 70
-    data = load_data(filepath)
-    processed_data, word_to_id, id_to_word = process_all_data(data)  # 根据词典映射
-    batches = getBatches(processed_data, batch_size)
+
+    sources_txt = 'data/sources.txt'
+    targets_txt = 'data/targets.txt'
+    keep_rate = 0.6
+    batch_size = 128
+
+    # 得到分词后的sources和targets
+    sources = load_and_cut_data(sources_txt)
+    targets = load_and_cut_data(targets_txt)
+
+    # 根据sources和targets创建词典，并映射
+    sources_data, targets_data, word_to_id, id_to_word = create_dic_and_map(sources, targets)
+    batches = getBatches(sources_data, targets_data, batch_size)
 
     temp = 0
     for nexBatch in batches:
