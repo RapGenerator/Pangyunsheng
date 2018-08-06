@@ -21,6 +21,7 @@ class HyperParameter(object):
         # Data filepath
         self.sources_txt = 'data/sources.txt'
         self.targets_txt = 'data/targets.txt'
+        self.dictionary_txt = 'data/dictionary.txt'
 
         # Saver config
         self.model_dir = 'model/'

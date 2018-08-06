@@ -2,6 +2,7 @@
 #  _*_ coding:utf-8 _*_
 
 import jieba
+from HyperParameter import HyperParameter
 
 padToken, unknownToken, goToken, eosToken = 0, 1, 2, 3
 
@@ -42,21 +43,10 @@ def create_dic_and_map(sources, targets):
     """
     special_words = ['<PAD>', '<UNK>', '<GO>', '<EOS>']
 
-    # 得到每次词语的使用频率
-    word_dic = {}
-    for line in (sources + targets):
-        for character in line:
-            word_dic[character] = word_dic.get(character, 0) + 1
-
-    # 去掉使用频率为1的词
-    # word_dic_new = [k for k, v in word_dic.items() if v > 1]
-    # word_dic_new = []
-    # for key, value in word_dic.items():
-    #     if value > 1:
-    #         word_dic_new.append(key)
-
-    # 不去掉频率为1的词
-    word_dic_new = [k for k, _ in word_dic.items()]
+    # Load dictionary from file
+    hp = HyperParameter()
+    with open(hp.dictionary_txt, 'r') as f:
+        word_dic_new = f.read().split('\n')
 
     # 将字典中的汉字/英文单词映射为数字
     id_to_word = {idx: word for idx, word in enumerate(special_words + word_dic_new)}
