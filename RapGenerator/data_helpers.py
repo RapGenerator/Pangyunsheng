@@ -59,7 +59,7 @@ def create_dic_and_map(sources, targets):
     return sources_data, targets_data, word_to_id, id_to_word
 
 
-def createBatch(sources, targets):
+def create_batch(sources, targets):
     batch = Batch()
     batch.encoder_inputs_length = [len(source) for source in sources]
     # len(target) + 1 because of one <EOS>
@@ -83,16 +83,16 @@ def createBatch(sources, targets):
     return batch
 
 
-def getBatches(sources_data, targets_data, batch_size):
+def get_batches(sources_data, targets_data, batch_size):
     data_len = len(sources_data)
 
-    def genNextSamples():
+    def gen_next_samples():
         for i in range(0, data_len, batch_size):
             yield sources_data[i:min(i + batch_size, data_len)], targets_data[i:min(i + batch_size, data_len)]
 
     batches = []
-    for sources, targets in genNextSamples():
-        batch = createBatch(sources, targets)
+    for sources, targets in gen_next_samples():
+        batch = create_batch(sources, targets)
         batches.append(batch)
 
     return batches
@@ -117,7 +117,7 @@ def sentence2enco(sentence, word2id):
         wordIds.append(word2id.get(word, unknownToken))
     print(wordIds)
     # 调用createBatch构造batch
-    batch = createBatch([wordIds], [[]])
+    batch = create_batch([wordIds], [[]])
     return batch
 
 
@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
     # 根据sources和targets创建词典，并映射
     sources_data, targets_data, word_to_id, id_to_word = create_dic_and_map(sources, targets)
-    batches = getBatches(sources_data, targets_data, batch_size)
+    batches = get_batches(sources_data, targets_data, batch_size)
 
     temp = 0
     for nexBatch in batches:

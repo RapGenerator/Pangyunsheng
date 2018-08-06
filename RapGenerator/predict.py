@@ -27,7 +27,6 @@ def predict_ids_to_seq(predict_ids, id2word, beam_size):
 
 
 if __name__ == '__main__':
-
     # 超参数
     hp = HyperParameter()
     rnn_size = hp.rnn_size
@@ -50,8 +49,11 @@ if __name__ == '__main__':
     sources_data, targets_data, word_to_id, id_to_word = create_dic_and_map(sources, targets)
 
     with tf.Session() as sess:
-        model = Seq2SeqModel(rnn_size, num_layers, embedding_size, learning_rate, word_to_id, mode='decode',
-                             use_attention=True, beam_search=True, beam_size=beam_size, cell_type='LSTM', max_gradient_norm=5.0)
+        model = Seq2SeqModel(
+            sess, rnn_size, num_layers, embedding_size, word_to_id, mode='predict',
+            learning_rate=learning_rate, use_attention=True,
+            beam_search=True, beam_size=beam_size, cell_type='LSTM', max_gradient_norm=5.0
+        )
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
             print('Reloading model parameters..')
@@ -65,7 +67,7 @@ if __name__ == '__main__':
         sentence = sys.stdin.readline()
         while sentence:
             batch = sentence2enco(sentence, word_to_id)
-            predicted_ids = model.infer(sess, batch)
+            predicted_ids = model.infer(batch)
             predict_ids_to_seq(predicted_ids, id_to_word, beam_size)
             sys.stdout.flush()
             sentence = input("> ")

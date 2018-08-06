@@ -9,7 +9,6 @@ import math
 import sys
 
 if __name__ == '__main__':
-
     # 超参数
     hp = HyperParameter()
     rnn_size = hp.rnn_size
@@ -40,8 +39,9 @@ if __name__ == '__main__':
         # Build model
         # Note that beam_search should be False while training!!!
         model = Seq2SeqModel(
-            rnn_size, num_layers, embedding_size, learning_rate, word_to_id, mode='train',
-            use_attention=True, beam_search=False, beam_size=beam_size,
+            sess, rnn_size, num_layers, embedding_size, word_to_id, mode='train',
+            learning_rate=learning_rate, use_attention=True,
+            beam_search=False, beam_size=beam_size,
             teacher_forcing=teacher_forcing,
             teacher_forcing_probability=teacher_forcing_probability,
             cell_type='LSTM', max_gradient_norm=5.0,
@@ -60,12 +60,12 @@ if __name__ == '__main__':
 
         for e in range(epochs):
             print("----- Epoch {}/{} -----".format(e + 1, epochs))
-            batches = getBatches(sources_data, targets_data, batch_size)
+            batches = get_batches(sources_data, targets_data, batch_size)
             steps = 0
             # Keep track of the minimum loss to save best model
             best_loss = 100000.0
             for nextBatch in batches:
-                loss, summary = model.train(sess, nextBatch)
+                loss, summary = model.train(nextBatch)
                 perplexity = math.exp(float(loss)) if loss < 300 else float('inf')
                 steps = steps + 1
                 if steps % print_loss_steps == 0:
@@ -80,4 +80,3 @@ if __name__ == '__main__':
                         sess, model_dir + 'seq2seq_epoch{}_step{}_loss{:.2f}.ckpt'.format(e, steps, loss)
                     )
             print()
-            # model.saver.save(sess, model_dir + 'seq2seq.ckpt')

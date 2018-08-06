@@ -3,7 +3,7 @@
 # @File  : create_dictionary.py
 # @Author: harry
 # @Date  : 18-8-6 下午5:37
-# @Desc  : Description goes here
+# @Desc  : Create dictionary.txt
 
 from data_helpers import *
 from HyperParameter import HyperParameter
