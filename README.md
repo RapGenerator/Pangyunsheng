@@ -4,3 +4,5 @@ RapGenerator文件夹下的模型是第二版的seq2seq，在第一版seq2seq基
 RapGeneratorV2文件夹下的模型是第三版的seq2seq
 
 Seq2Seq（终极版）是最终的Seq2Seq model，以后的改进都基于这个版本的Seq2Seq
+## Dariy
+---
