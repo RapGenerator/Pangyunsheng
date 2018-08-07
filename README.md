@@ -3,10 +3,10 @@
 * RapGenerator文件夹下的模型是第二版的seq2seq（已弃用）
 * RapGeneratorV2文件夹下的模型是第三版的seq2seq（已弃用）
 * Seq2Seq（终极版）是最终版的Seq2Seq，主要包含以下mode：
-  Data loading mode: reversed
-  Training mode: ground truth
-  Training mode: scheduled sampling(teacher forcing)
-  Predicting mode: greedy
+  Data loading mode: reversed  
+  Training mode: ground truth  
+  Training mode: scheduled sampling(teacher forcing)  
+  Predicting mode: greedy  
   Predicting mode: beam search
 ## Diary
 ### 2018-08-07
