@@ -7,7 +7,7 @@
   **Training mode:** ground truth  
   **Training mode:** scheduled sampling(teacher forcing)  
   **Predicting mode:** greedy  
-  **Predicting mode:** beam search
+  **Predicting mode:** beam search  
   **Attention mode:** bahdanau attention
 ## Diary
 ### 2018-08-07
