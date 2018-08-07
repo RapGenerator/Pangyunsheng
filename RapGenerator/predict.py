@@ -20,8 +20,8 @@ def predict_ids_to_seq(predict_ids, id2word, beam_size):
     for single_predict in predict_ids:
         for i in range(beam_size):
             print("Beam search result {}：".format(i + 1))
-            predict_list = np.ndarray.tolist(single_predict[:, :, i])
-            predict_seq = [id2word[idx] for idx in predict_list[0]]
+            predict_list = np.ndarray.tolist(single_predict[:, i])
+            predict_seq = [id2word[idx] for idx in predict_list]
             print(" ".join(predict_seq))
             print()
 
@@ -50,9 +50,18 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         model = Seq2SeqModel(
-            sess, rnn_size, num_layers, embedding_size, word_to_id, mode='predict',
-            learning_rate=learning_rate, use_attention=True,
-            beam_search=True, beam_size=beam_size, cell_type='LSTM', max_gradient_norm=5.0
+            sess=sess,
+            rnn_size=rnn_size,
+            num_layers=num_layers,
+            embedding_size=embedding_size,
+            word_to_id=word_to_id,
+            mode='predict',
+            learning_rate=learning_rate,
+            use_attention=True,
+            beam_search=True,
+            beam_size=beam_size,
+            cell_type='LSTM',
+            max_gradient_norm=5.0
         )
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):

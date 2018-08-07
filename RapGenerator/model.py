@@ -297,5 +297,5 @@ class Seq2SeqModel(object):
                      self.encoder_inputs_length: batch.encoder_inputs_length,
                      self.keep_prob: 1.0,
                      self.batch_size: len(batch.encoder_inputs)}
-        predict = self.sess.run([self.decoder_predict_decode], feed_dict=feed_dict)
+        predict = self.sess.run(self.decoder_predict_decode, feed_dict=feed_dict)
         return predict

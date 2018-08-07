@@ -39,12 +39,20 @@ if __name__ == '__main__':
         # Build model
         # Note that beam_search should be False while training!!!
         model = Seq2SeqModel(
-            sess, rnn_size, num_layers, embedding_size, word_to_id, mode='train',
-            learning_rate=learning_rate, use_attention=True,
-            beam_search=False, beam_size=beam_size,
+            sess=sess,
+            rnn_size=rnn_size,
+            num_layers=num_layers,
+            embedding_size=embedding_size,
+            word_to_id=word_to_id,
+            mode='train',
+            learning_rate=learning_rate,
+            use_attention=True,
+            beam_search=False,
+            beam_size=beam_size,
             teacher_forcing=teacher_forcing,
             teacher_forcing_probability=teacher_forcing_probability,
-            cell_type='LSTM', max_gradient_norm=5.0,
+            cell_type='LSTM',
+            max_gradient_norm=5.0,
             max_to_keep=max_to_keep
         )
 

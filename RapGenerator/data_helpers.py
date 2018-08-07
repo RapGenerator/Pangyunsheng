@@ -137,10 +137,10 @@ if __name__ == '__main__':
     batches = get_batches(sources_data, targets_data, batch_size)
 
     temp = 0
-    for nexBatch in batches:
+    for nextBatch in batches:
         if temp == 0:
-            print(len(nexBatch.encoder_inputs))
-            print(len(nexBatch.encoder_inputs_length))
-            print(nexBatch.decoder_targets)
-            print(nexBatch.decoder_targets_length)
+            print(len(nextBatch.encoder_inputs))
+            print(len(nextBatch.encoder_inputs_length))
+            print(nextBatch.decoder_targets)
+            print(nextBatch.decoder_targets_length)
         temp += 1
