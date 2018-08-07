@@ -1,9 +1,13 @@
-﻿# Pangyunsheng
-Seq2Seq文件夹下的模型是第一个版本的seq2seq，只加了Attention，且数据集不是rap数据集  
-RapGenerator文件夹下的模型是第二版的seq2seq，在第一版seq2seq基础上加入了beam serach，加入了GRUCell作为可选的cell_type，数据集换成了rap数据集
-RapGeneratorV2文件夹下的模型是第三版的seq2seq
-
-Seq2Seq（终极版）是最终的Seq2Seq model，以后的改进都基于这个版本的Seq2Seq
+﻿# Pangyunsheng  
+## Code
+* RapGenerator文件夹下的模型是第二版的seq2seq（已弃用）
+* RapGeneratorV2文件夹下的模型是第三版的seq2seq（已弃用）
+* Seq2Seq（终极版）是最终版的Seq2Seq，主要包含以下mode：
+  Data loading mode: reversed
+  Training mode: ground truth
+  Training mode: scheduled sampling(teacher forcing)
+  Predicting mode: greedy
+  Predicting mode: beam search
 ## Diary
 ### 2018-08-07
 * Modified "RapGeneratorV2" file to make it can decode more than one line Rap lyrics, but because there are too many "UNK" symbols, our model(refer to RapGeneratorV2) can only decode about four to six lines without symbol "UNK" at one time. Our final seq2seq baseline model "Seq2Seq（终极版)" can decode any number of lines of lyrics.  
