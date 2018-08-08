@@ -12,8 +12,6 @@ from tensorflow.contrib.seq2seq import BasicDecoder, dynamic_decode
 from tensorflow.contrib.seq2seq import BeamSearchDecoder
 from tensorflow.contrib.seq2seq import sequence_loss
 from tensorflow.contrib.seq2seq import tile_batch
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 
 class SkipThoughtModel(object):
@@ -200,7 +198,7 @@ class SkipThoughtModel(object):
         return loss
 
     def build_predict_decoder(self):
-        start_tokens = tf.ones([self.batch_size, ], tf.float32) * self.word_to_id['<GO>']
+        start_tokens = tf.ones([self.batch_size, ], tf.int32) * self.word_to_id['<GO>']
         end_token = self.word_to_id['<EOS>']
 
         decoder_cell, deocder_initial_state = self.build_decoder_cell()
@@ -244,16 +242,18 @@ class SkipThoughtModel(object):
 
     def build_decoder_cell(self):
         encoder_inputs_length = self.encoder_inputs_length
+        encoder_outputs = self.encoder_outputs
+        encoder_state = self.encoder_state
         if self.beam_search:
             print('Use beamsearch decoding...')
-            self.encoder_outputs = tile_batch(self.encoder_outputs, multiplier=self.beam_size)
-            self.encoder_state = nest.map_structure(lambda s: tile_batch(s, self.beam_size), self.encoder_state)
+            encoder_outputs = tile_batch(self.encoder_outputs, multiplier=self.beam_size)
+            encoder_state = nest.map_structure(lambda s: tile_batch(s, self.beam_size), self.encoder_state)
             encoder_inputs_length = tile_batch(encoder_inputs_length, multiplier=self.beam_size)
 
         # 定义要使用的attention机制
         attention_mechanism = BahdanauAttention(
             num_units=self.rnn_size,
-            memory=self.encoder_outputs,
+            memory=encoder_outputs,
             memory_sequence_length=encoder_inputs_length
         )
 
@@ -271,7 +271,7 @@ class SkipThoughtModel(object):
         decoder_initial_state = decoder_cell.zero_state(
             batch_size=batch_size,
             dtype=tf.float32).clone(
-            cell_state=self.encoder_state
+            cell_state=encoder_state
         )
 
         return decoder_cell, decoder_initial_state
@@ -329,6 +329,6 @@ class SkipThoughtModel(object):
             self.batch_size: len(batch.encoder_inputs),
             self.keep_prob: 1.0
         }
-        predict_pre, predict_post = self.sess.run([self.decoder_predict_decode_pre, self.build_predict_decoder_post()],
+        predict_pre, predict_post = self.sess.run([self.decoder_predict_decode_pre, self.decoder_predict_decode_post],
                                                   feed_dict=feed_dict)
         return predict_pre, predict_post
