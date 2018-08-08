@@ -142,9 +142,10 @@ class Seq2SeqModel(object):
                     in one layer of shape(num_hidden_states, batch_size, rnn_size)
                 :return: merged state
                 """
-                layer_states = tf.unstack(layer_states, axis=0)
-                layer_state_merged = nest.map_structure(_apply_state_merge_step, layer_states)
-                (layer_state_merged_c, layer_state_merged_h) = layer_state_merged
+                layer_state_c, layer_state_h = tf.unstack(layer_states, axis=0)
+                layer_state_merged_h = _apply_state_merge_step(layer_state_h)
+                # 将 Decoder 的初始 cell memory 置为0
+                layer_state_merged_c = tf.zeros_like(layer_state_merged_h)
                 state_merged = tf.contrib.rnn.LSTMStateTuple(layer_state_merged_c, layer_state_merged_h)
                 return state_merged
 
