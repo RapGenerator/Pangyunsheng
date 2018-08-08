@@ -60,7 +60,6 @@ if __name__ == '__main__':
             use_attention=True,
             beam_search=True,
             beam_size=beam_size,
-            cell_type='LSTM',
             max_gradient_norm=5.0
         )
         ckpt = tf.train.get_checkpoint_state(model_dir)

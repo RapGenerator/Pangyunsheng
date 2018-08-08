@@ -51,7 +51,6 @@ if __name__ == '__main__':
             beam_size=beam_size,
             teacher_forcing=teacher_forcing,
             teacher_forcing_probability=teacher_forcing_probability,
-            cell_type='LSTM',
             max_gradient_norm=5.0,
             max_to_keep=max_to_keep
         )

@@ -16,7 +16,7 @@ from tensorflow.contrib.rnn import LSTMCell, GRUCell
 class Seq2SeqModel(object):
     def __init__(self, sess, rnn_size, num_layers, embedding_size, word_to_id,
                  mode, use_attention, learning_rate=0.01, max_to_keep=5,
-                 beam_search=False, beam_size=5, cell_type='LSTM',
+                 beam_search=False, beam_size=5,
                  max_gradient_norm=5, teacher_forcing=False, teacher_forcing_probability=0.5):
         self.sess = sess
         self.learning_rate = learning_rate
@@ -29,7 +29,6 @@ class Seq2SeqModel(object):
         self.use_attention = use_attention
         self.beam_search = beam_search
         self.beam_size = beam_size
-        self.cell_type = cell_type
         self.max_gradient_norm = max_gradient_norm
         self.teacher_forcing = teacher_forcing
         self.teacher_forcing_probability = teacher_forcing_probability
@@ -39,6 +38,9 @@ class Seq2SeqModel(object):
         # Encoder
         self.encoder_outputs = None
         self.encoder_state = None
+        self.encoder_state_fw = None
+        self.encoder_state_bw = None
+        self.encoder_state_merge_layers = None
         self.encoder_inputs = None
         self.encoder_inputs_length = None
 
@@ -97,16 +99,64 @@ class Seq2SeqModel(object):
 
     def build_encoder(self):
         print('Building encoder...')
-
         with tf.variable_scope('encoder'):
-            encoder_cell = self.create_rnn_cell()
+            encoder_cell_fw, encoder_cell_bw = self.create_bi_rnn_cell()
             encoder_inputs_embedded = tf.nn.embedding_lookup(self.embedding, self.encoder_inputs)
-            self.encoder_outputs, self.encoder_state = tf.nn.dynamic_rnn(
-                encoder_cell,
-                encoder_inputs_embedded,
-                sequence_length=self.encoder_inputs_length,
-                dtype=tf.float32
-            )
+
+            # 构建动态双向多层RNN
+            self.encoder_outputs, self.encoder_state_fw, self.encoder_state_bw = \
+                tf.contrib.rnn.stack_bidirectional_dynamic_rnn(
+                    encoder_cell_fw,
+                    encoder_cell_bw,
+                    encoder_inputs_embedded,
+                    sequence_length=self.encoder_inputs_length,
+                    dtype=tf.float32
+                )
+
+            def _create_merge_dense_layer():
+                return tf.layers.Dense(
+                    self.rnn_size,
+                    kernel_initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.1)
+                )
+
+            # 构建前向隐状态和后向隐状态合并全连接层
+            # encoder_state_merge_layers是个list，长度为num_layers * num_hidden_states
+            self.encoder_state_merge_layers = []
+
+            def _apply_state_merge_step(layer_state):
+                """
+                Apply merge for one hidden state
+                :param layer_state: a tensor standing for one hidden state
+                    of shape(batch_size, rnn_size)
+                :return:
+                """
+                dense = _create_merge_dense_layer()
+                self.encoder_state_merge_layers.append(dense)
+                layer_state_merged = dense(layer_state)
+                return layer_state_merged
+
+            def _apply_state_merge(layer_states):
+                """
+                Apply merge for hidden states in one layer
+                :param layer_states: a tensor standing for hidden states
+                    in one layer of shape(num_hidden_states, batch_size, rnn_size)
+                :return: merged state
+                """
+                layer_states = tf.unstack(layer_states, axis=0)
+                layer_state_merged = nest.map_structure(_apply_state_merge_step, layer_states)
+                (layer_state_merged_c, layer_state_merged_h) = layer_state_merged
+                state_merged = tf.contrib.rnn.LSTMStateTuple(layer_state_merged_c, layer_state_merged_h)
+                return state_merged
+
+            # 将前向隐状态和后向隐状态合并
+            # encoder_state_concat is a tensor of shape(num_layers, num_hidden_states, batch_size, rnn_size)
+            # where num_hidden_states is 2 for LSTM
+            encoder_state_concat = tf.concat([self.encoder_state_fw, self.encoder_state_bw], axis=-1)
+            # 将合并后的tensor展开为list
+            # len(encoder_concat_unstacked) = num_layers
+            encoder_state_concat_unstacked = tf.unstack(encoder_state_concat, axis=0)
+            self.encoder_state = nest.map_structure(_apply_state_merge, encoder_state_concat_unstacked)
+            self.encoder_state = tuple(self.encoder_state)
 
     def build_decoder(self):
         print('Building decoder...')
@@ -248,19 +298,28 @@ class Seq2SeqModel(object):
 
         return decoder_cell, decoder_initial_state
 
+    def _single_rnn_cell(self):
+        single_cell = LSTMCell(self.rnn_size)
+        basic_cell = DropoutWrapper(single_cell, output_keep_prob=self.keep_prob)
+        return basic_cell
+
     def create_rnn_cell(self):
         """
         创建标准的RNN Cell，相当于一个时刻的Cell
         :return: cell: 一个Deep RNN Cell
         """
-
-        def single_rnn_cell():
-            single_cell = GRUCell(self.rnn_size) if self.cell_type == 'GRU' else LSTMCell(self.rnn_size)
-            basic_cell = DropoutWrapper(single_cell, output_keep_prob=self.keep_prob)
-            return basic_cell
-
-        cell = MultiRNNCell([single_rnn_cell() for _ in range(self.num_layers)])
+        cell = MultiRNNCell([self._single_rnn_cell() for _ in range(self.num_layers)])
         return cell
+
+    def create_bi_rnn_cell(self):
+        """
+        创建双向的RNN Cell，相当于一个时刻的Cell
+        :return: cell_fw: 前向RNN cell的list
+        :return: cell_bw: 后向RNN cell的list
+        """
+        cell_fw = [self._single_rnn_cell() for _ in range(self.num_layers)]
+        cell_bw = [self._single_rnn_cell() for _ in range(self.num_layers)]
+        return cell_fw, cell_bw
 
     def build_optimizer(self):
         print('Building optimizer...')
