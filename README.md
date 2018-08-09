@@ -21,12 +21,12 @@
 * Zi qun added Bidirectional RNN encoder based on our baseline model "Seq2Seq", we are going to merge this model with Skip-Thought model.
 * We talked about how to generate rap lyrics according to some key words, we want to try to generate a line according to a key word, and generate more lines according to this line.
 * Weiwen will extract a key word from a line of rap lyrics for traning sets, and we will use this training sets to train our model.
-### 2018-8-29
+### 2018-8-09
 * Talked to our teacher about how to generate rap lyrics based on subjects, and how to make rap lyrics rhyme. On my conclusion, I will do some work next days below:  
 &emsp;1.Try datasets with different rhyming rules.  
 &emsp;2.Try to make our decoder reverse output.  
-&emsp;3.Train a model that can generate sentences from topics
-&emsp;4.Train a new model based on Skip-Thought model that can classifier current sentence and generate next sentence.
-&emsp;5.Modify beam search function so that we can select a word whose rhyme is same as the last word of last sentence.
+&emsp;3.Train a model that can generate sentences from topics  
+&emsp;4.Train a new model based on Skip-Thought model that can classifier current sentence and generate next sentence.  
+&emsp;5.Modify beam search function so that we can select a word whose rhyme is same as the last word of last sentence.  
 &emsp;6.Modify our model so that it can generate sentences of any length we want.
 * Until now, I have finished the model mentioned in the third article above, but I haven't got our datasets. I'm going to train it tomorrow. And I have finished the model mentioned in the fourth article above, only a LSTM sequence model to generate a sentence based on a subject.
