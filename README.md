@@ -2,7 +2,7 @@
 ## Code
 * RapGenerator文件夹下的模型是第二版的seq2seq（已弃用）
 * RapGeneratorV2文件夹下的模型是第三版的seq2seq（已弃用）
-* Seq2Seq(baseline)是最终版的Seq2Seq，主要包含以下mode：  
+* Seq2Seq(baseline)是Seq2Seq的baseline版本，主要包含以下mode：  
   **Data loading mode:** reversed  
   **Training mode:** ground truth  
   **Training mode:** scheduled sampling(teacher forcing)  
