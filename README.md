@@ -31,3 +31,13 @@
 &emsp;5.Modify beam search function so that we can select a word whose rhyme is same as the last word of last sentence.  
 &emsp;6.Modify our model so that it can generate sentences of any length we want.
 * Until now, I have finished the model mentioned in the third article above, but I haven't got our datasets. I'm going to train it tomorrow. And I have finished the model mentioned in the fourth article above, only a LSTM sequence model to generate a sentence based on a subject.
+### 2018-8-10
+* Read paper from HaGongda. In the afternoon, we visit the company of MeiTuan in BeiJing, and I do noing.  
+### 2018-8-11
+* Read some basic knowledge about GAN
+* Finished the code of model "SkipThoughtCG"(I named it), it looks like a model of SkipThought, but we replace a decoder of a classifier.  
+* Read paer from HaGongda and check it codes on github.
+### 2018-8-12
+* Trained the model "SkipThoughtCG" and finished the inference phase of this model. 
+* Read some basic knowledge about RL and GAN in text generation task.
+* ZiQun modified the parameter of "num_layers" as 2, and modified the type of bidirectional RNN, that made a good results. I follow these parameters and change my model, I'm going to see my model's effect.
