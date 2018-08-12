@@ -4,7 +4,7 @@
 import tensorflow as tf
 import numpy as np
 
-# from Seq2Seq.HyperParameter import HyperParameter
+from Seq2SeqV2.HyperParameter import HyperParameter
 from Seq2SeqV2.DataHelpers import *
 from Seq2SeqV2.model import Seq2SeqModel
 import sys
@@ -20,8 +20,8 @@ def predict_ids_to_seq(predict_ids, id2word, beam_size):
     for single_predict in predict_ids:
         for i in range(beam_size):
             print("Beam search result {}：".format(i + 1))
-            predict_list = np.ndarray.tolist(single_predict[:, :, i])
-            predict_seq = [id2word[idx] for idx in predict_list[0]]
+            predict_list = np.ndarray.tolist(single_predict[:, i])
+            predict_seq = [id2word[idx] for idx in predict_list]
             print(" ".join(predict_seq))
             print()
 
@@ -40,6 +40,7 @@ if __name__ == '__main__':
     targets_txt = hp.targets_txt
     model_dir = hp.model_dir
     beam_size = hp.beam_size
+    writer = None
 
     # 得到分词后的sources和targets
     sources = load_and_cut_data(sources_txt)
@@ -61,7 +62,8 @@ if __name__ == '__main__':
             beam_search=True,
             beam_size=beam_size,
             cell_type='LSTM',
-            max_gradient_norm=5.0
+            max_gradient_norm=5.0,
+            writer=writer
         )
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):

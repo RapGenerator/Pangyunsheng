@@ -15,7 +15,7 @@ from tensorflow.contrib.rnn import LSTMCell, GRUCell
 
 class Seq2SeqModel(object):
     def __init__(self, sess, rnn_size, num_layers, embedding_size, word_to_id, mode, use_attention, writer, learning_rate=0.01,
-                 max_to_keep=5, beam_search=False, beam_size=5, cell_type='LSTM', max_gradient_norm=5,
+                 max_to_keep=5, beam_search=False, beam_size=5, cell_type='LSTM', max_gradient_norm=5, bidirectional=True,
                  teacher_forcing=False, teacher_forcing_probability=0.5):
 
         self.sess = sess
@@ -31,6 +31,7 @@ class Seq2SeqModel(object):
         self.beam_size = beam_size
         self.cell_type = cell_type
         self.max_gradient_norm = max_gradient_norm
+        self.bidirectional = bidirectional
         self.teacher_forcing = teacher_forcing
         self.teacher_forcing_probability = teacher_forcing_probability
         self.batch_size = None
@@ -100,54 +101,38 @@ class Seq2SeqModel(object):
         print('Building encoder...')
 
         with tf.variable_scope('encoder'):
-            encoder_cell_fw, encoder_cell_bw = self.create_bi_rnn_cell()
             encoder_inputs_embedded = tf.nn.embedding_lookup(self.embedding, self.encoder_inputs)
 
-            # 构建动态双向多层RNN
-            self.encoder_outputs, self.encoder_state_fw, self.encoder_state_bw = \
-                tf.contrib.rnn.stack_bidirectional_dynamic_rnn(
-                encoder_cell_fw,
-                encoder_cell_bw,
-                encoder_inputs_embedded,
-                sequence_length=self.encoder_inputs_length,
-                dtype=tf.float32
-            )
+            if self.bidirectional:
+                encoder_cell_fw, encoder_cell_bw = self.create_bi_rnn_cell()
+                self.encoder_outputs, self.encoder_state_fw, self.encoder_state_bw = \
+                    tf.contrib.rnn.stack_bidirectional_dynamic_rnn(
+                        encoder_cell_fw,
+                        encoder_cell_bw,
+                        encoder_inputs_embedded,
+                        sequence_length=self.encoder_inputs_length,
+                        dtype=tf.float32
+                    )
 
-            def _create_merge_dense_layer():
-                return tf.layers.Dense(
-                    self.rnn_size,
-                    kernel_initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.1)
+                def _apply_state_merge(layer_states):
+                    layer_state_c, layer_state_h = tf.unstack(layer_states, axis=0)
+                    state_merged = tf.contrib.rnn.LSTMStateTuple(layer_state_c, layer_state_h)
+                    return state_merged
+
+                encoder_state_fw_bw_stack = tf.stack([self.encoder_state_fw, self.encoder_state_bw])
+                encoder_state_fw_bw_mean = tf.reduce_mean(encoder_state_fw_bw_stack, axis=0)
+                encoder_state_fw_bw_unstack = tf.unstack(encoder_state_fw_bw_mean)
+                encoder_state = nest.map_structure(_apply_state_merge, encoder_state_fw_bw_unstack)
+                self.encoder_state = tuple(encoder_state)
+
+            else:
+                encoder_cell = self.create_rnn_cell()
+                self.encoder_outputs, self.encoder_state = tf.nn.dynamic_rnn(
+                    encoder_cell,
+                    encoder_inputs_embedded,
+                    sequence_length=self.encoder_inputs_length,
+                    dtype=tf.float32
                 )
-
-            def _apply_state_merge_step(layer_state):
-                """
-                Apply merge for one hidden state
-                :param layer_state: a tensor standing for one hidden state
-                    of shape(batch_size, rnn_size)
-                :return:
-                """
-                dense = _create_merge_dense_layer()
-                layer_state_merged = dense(layer_state)
-                return layer_state_merged
-
-            def _apply_state_merge(layer_states):
-                """
-                Apply merge for hidden states in one layer
-                :param layer_states: a tensor standing for hidden states
-                    in one layer of shape(num_hidden_states, batch_size, rnn_size)
-                :return: merged state
-                """
-                layer_state_c, layer_state_h = tf.unstack(layer_states, axis=0)
-                layer_state_merged_h = _apply_state_merge_step(layer_state_h)
-                # 将 Decoder 的初始 cell memory 置为0
-                layer_state_merged_c = _apply_state_merge_step(layer_state_c)
-                state_merged = tf.contrib.rnn.LSTMStateTuple(layer_state_merged_c, layer_state_merged_h)
-                return state_merged
-
-        encoder_state_concat = tf.concat([self.encoder_state_fw, self.encoder_state_bw], axis=-1)
-        encoder_state_concat_unstacked = tf.unstack(encoder_state_concat, axis=0)
-        self.encoder_state = nest.map_structure(_apply_state_merge, encoder_state_concat_unstacked)
-        self.encoder_state = tuple(self.encoder_state)
 
     def build_decoder(self):
         print('Building decoder...')
