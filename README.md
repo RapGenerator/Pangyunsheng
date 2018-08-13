@@ -41,3 +41,8 @@
 * Trained the model "SkipThoughtCG" and finished the inference phase of this model. 
 * Read some basic knowledge about RL and GAN in text generation task.
 * ZiQun modified the parameter of "num_layers" as 2, and modified the type of bidirectional RNN, that made a good results. I follow these parameters and change my model, I'm going to see my model's effect.
+### 2018-8-13
+* Used the model of "SkipThoughtCG" to generate sentences, but it didn't work well, our data is very bad.  
+* Learned some knowledge about SeqGAN and RL in text generation task.  
+* Finshed codes of paper of HaGongda(named "MTA_LSTM"). And try to train it with their datasets. I'm going to check the result of that model.  
+* In next two days, the main thing is to get more data with subjects, and the final model may from "SkipThoughtCG" and "MTA_LSTM". I'm going to use the two models to generate sentences with subjects.
