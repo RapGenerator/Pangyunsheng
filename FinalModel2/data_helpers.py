@@ -116,7 +116,7 @@ def sentence2enco(sentence, word2id):
     wordIds = []
     for word in cutted_line:
         wordIds.append(word2id.get(word, unknownToken))
-    print(wordIds)
+    # print(wordIds)
     # 调用createBatch构造batch
     batch = create_batch([wordIds], [[]])
     return batch

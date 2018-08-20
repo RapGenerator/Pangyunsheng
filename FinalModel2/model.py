@@ -14,12 +14,12 @@ from tensorflow.contrib.rnn import LSTMCell
 
 
 class Seq2SeqModel(object):
-    def __init__(self, sess, rnn_size, num_layers, embedding_size, word_to_id,
+    def __init__(self, rnn_size, num_layers, embedding_size, word_to_id,
                  mode, use_attention, learning_rate=0.01, max_to_keep=5,
                  beam_search=False, beam_size=5,
                  encoder_state_merge_method="mean",
                  max_gradient_norm=5, teacher_forcing=False, teacher_forcing_probability=0.5):
-        self.sess = sess
+
         self.learning_rate = learning_rate
         self.embedding_size = embedding_size
         self.rnn_size = rnn_size
@@ -359,30 +359,30 @@ class Seq2SeqModel(object):
         clip_gradients, _ = tf.clip_by_global_norm(gradients, self.max_gradient_norm)
         self.train_op = optimizer.apply_gradients(zip(clip_gradients, trainable_params))
 
-    def train(self, batch):
+    def train(self, sess, batch):
         feed_dict = {self.encoder_inputs: batch.encoder_inputs,
                      self.encoder_inputs_length: batch.encoder_inputs_length,
                      self.decoder_targets: batch.decoder_targets,
                      self.decoder_targets_length: batch.decoder_targets_length,
                      self.keep_prob: 0.5,
                      self.batch_size: len(batch.encoder_inputs)}
-        _, loss, summary = self.sess.run([self.train_op, self.loss, self.summary_op], feed_dict=feed_dict)
+        _, loss, summary = sess.run([self.train_op, self.loss, self.summary_op], feed_dict=feed_dict)
         return loss, summary
 
-    def eval(self, batch):
+    def eval(self, sess, batch):
         feed_dict = {self.encoder_inputs: batch.encoder_inputs,
                      self.encoder_inputs_length: batch.encoder_inputs_length,
                      self.decoder_targets: batch.decoder_targets,
                      self.decoder_targets_length: batch.decoder_targets_length,
                      self.keep_prob: 1.0,
                      self.batch_size: len(batch.encoder_inputs)}
-        loss, summary = self.sess.run([self.loss, self.summary_op], feed_dict=feed_dict)
+        loss, summary = sess.run([self.loss, self.summary_op], feed_dict=feed_dict)
         return loss, summary
 
-    def infer(self, batch):
+    def infer(self, sess, batch):
         feed_dict = {self.encoder_inputs: batch.encoder_inputs,
                      self.encoder_inputs_length: batch.encoder_inputs_length,
                      self.keep_prob: 1.0,
                      self.batch_size: len(batch.encoder_inputs)}
-        predict = self.sess.run(self.decoder_predict_decode, feed_dict=feed_dict)
+        predict = sess.run(self.decoder_predict_decode, feed_dict=feed_dict)
         return predict
