@@ -47,6 +47,7 @@ class Gen():
         :param id2word: vocab字典
         :return:
         """
+        index = random.randint(0, self.hp.beam_size - 1)
         sentence_lsit = []
         for single_predict in predict_ids:
             for i in range(beam_size):
@@ -54,7 +55,7 @@ class Gen():
                 predict_list = np.ndarray.tolist(single_predict[:, i])
                 predict_seq = [id2word[idx] for idx in predict_list]
                 sentence_lsit.append(predict_seq)
-        return sentence_lsit[0]
+        return sentence_lsit[index]
 
     def user_input(self, input_text, sample_size):
 
